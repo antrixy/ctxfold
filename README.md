@@ -1,6 +1,6 @@
 # ctxfold
 
-![ctxfold](assets/ctxfold-cover.png)
+![ctxfold](https://raw.githubusercontent.com/antrixy/ctxfold/main/assets/ctxfold-cover.png)
 
 **Lossless, structure-aware re-encoding of bulky text to cut LLM prompt tokens.**
 
