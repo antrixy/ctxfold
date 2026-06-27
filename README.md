@@ -1,5 +1,7 @@
 # ctxfold
 
+![ctxfold](assets/ctxfold-cover.png)
+
 **Lossless, structure-aware re-encoding of bulky text to cut LLM prompt tokens.**
 
 Logs, JSON arrays, and CSV are the highest-volume, most repetitive things people
