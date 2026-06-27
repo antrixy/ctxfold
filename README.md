@@ -3,10 +3,9 @@
 **Lossless, structure-aware re-encoding of bulky text to cut LLM prompt tokens.**
 
 Logs, JSON arrays, and CSV are the highest-volume, most repetitive things people
-put into LLM prompts. Semantic compressors (LLMLingua, Headroom, …) shrink them
-by *summarizing* — dropping "low-information" tokens and hoping. That quietly
-breaks any answer that needed the dropped data (counts, totals, a specific
-record).
+put into LLM prompts. Semantic compressors shrink them by *summarizing* —
+dropping "low-information" tokens and hoping. That quietly breaks any answer that
+needed the dropped data (counts, totals, a specific record).
 
 ctxfold takes the opposite approach. It re-encodes the **structure** — the
 parts that repeat on every line/row — into a denser plain-text form the model
@@ -18,6 +17,29 @@ Every encoder ships with a decoder, and `compress()` verifies that
 decoding its output reproduces the input before returning it. If it can't, you
 get your original text back, untouched. The tool cannot corrupt your data —
 worst case, it does nothing.
+
+## Why ctxfold
+
+The usual way to cut prompt tokens is *semantic* compression — summarize the
+input and drop "low-information" tokens. It works until the question needs the
+data that got dropped. Ask *"how many errors are in this log?"* or *"what's the
+total across these 400 rows?"* and a lossy compressor can hand back a confident,
+wrong answer, because the rows it discarded were the ones you needed. The
+compression looks great; the answer is broken.
+
+ctxfold makes the opposite bet. Logs, JSON arrays, and CSV are tables in
+disguise — the same keys, prefixes, and templates repeat on every line. ctxfold
+lifts those repeated parts into a one-time header and keeps only what varies,
+producing a compact, self-labeling table the model reads directly. It cuts
+**~35–40% of tokens** on templated logs and JSON arrays, fully losslessly — and
+because the output is plain, labeled text, the model reads it as well as the raw
+input. In lookup tests against GPT-4o-mini, answers off the compressed form
+matched answers off the raw data, field for field. (Readability is validated on
+GPT-4o-mini; the lossless guarantee is model-independent.)
+
+ctxfold isn't a replacement for semantic compression — it's the other half.
+Summarize to extract a subset; ctxfold to shrink repetition without losing
+anything. It shines on structured data, not prose.
 
 ## Install
 
