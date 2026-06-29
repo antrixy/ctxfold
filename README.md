@@ -172,19 +172,16 @@ vs 24/24) at ~39% fewer tokens.
 
 ## Roadmap
 
-ctxfold's focus is to be the best **tabular** structural folder — not to cover
-every format. The path, in order:
+ctxfold's focus is to be the best tabular structural folder — not to cover every format. It grows along one axis: data that can be viewed as repeated records.
+Possible directions (not commitments, roughly in order of fit):
 
-- More tabular formats that map cleanly to the same core (SQL result sets,
-  Markdown tables, HTML tables)
-- Middleware/integrations for common LLM frameworks
-- Real-world datasets and benchmarks
-- One level of JSON nesting
-- Token profiler — show where a prompt's tokens go and what's compressible
+More tabular formats that map cleanly to the same core — SQL result sets, Markdown tables, HTML tables
+Middleware for common LLM frameworks
+Real-world datasets and benchmarks
+One level of JSON nesting
+A token profiler
 
-Hierarchical data (YAML, XML, deeply nested JSON) needs a different algorithm; if
-it happens, it'll likely live as a separate `ctxfold-hierarchical` rather than
-blur this one's identity.
+Hierarchical data (YAML, XML, deeply nested JSON) needs a different algorithm. If it happens, it'll likely live as a separate ctxfold-hierarchical rather than blur this project's identity.
 
 ## License
 
