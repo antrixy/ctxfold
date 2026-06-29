@@ -1,7 +1,5 @@
 # ctxfold
 
-<img src="https://raw.githubusercontent.com/antrixy/ctxfold/main/assets/ctxfold-cover.png" alt="ctxfold" width="640">
-
 **Lossless, structure-aware re-encoding of bulky text to cut LLM prompt tokens.**
 
 Logs, JSON arrays, and CSV are the highest-volume, most repetitive things people
@@ -77,8 +75,35 @@ compress(bigBlob, { countTokens: (s) => encode(s).length });
 ```bash
 cat app.log | ctxfold --stats        # compress stdin -> stdout, stats to stderr
 ctxfold data.json > packed.txt        # compress a file
+ctxfold --dictionary data.json        # opt-in: dictionary-code low-cardinality columns
 ctxfold --decompress packed.txt       # reverse it
 ```
+
+## Dictionary coding (opt-in)
+
+For JSON, low-cardinality string columns (a `status`, `category`, or `region`
+field with only a handful of distinct values repeated across many rows) can be
+**dictionary-coded**: each distinct value becomes a small integer, with the
+`code → value` map declared once in the header. It's lossless and pushes JSON
+savings from ~39% to ~46% on suitable data.
+
+```js
+const { text, stats } = compress(jsonArray, { dictionary: true });
+// or: ctxfold --dictionary data.json
+```
+
+It's **off by default, on purpose.** In testing, models read the coded columns
+slightly less reliably than plain values — they have to resolve `region=1` back
+to `EU` through the header, and occasionally don't. So the extra savings come
+with a readability cost when the model reads the table *directly*.
+
+Use it when:
+- you call `decompress()` to restore real values **before** the model sees them
+  (then the codes never reach the model and readability is irrelevant), or
+- you've measured that your model + data resolve the dictionary reliably.
+
+Otherwise, leave it off — the default (~39%, fully readable) is the safe choice.
+The round-trip self-check still gates it, so it can never be lossy either way.
 
 ## What it handles
 
