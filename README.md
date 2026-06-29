@@ -1,45 +1,50 @@
 # ctxfold
 
-**Lossless, structure-aware re-encoding of bulky text to cut LLM prompt tokens.**
+![ctxfold: raw structured data folds into a compact table the model reads directly](https://raw.githubusercontent.com/antrixy/ctxfold/main/assets/ctxfold-before-after.png)
 
-Logs, JSON arrays, and CSV are the highest-volume, most repetitive things people
-put into LLM prompts. Semantic compressors shrink them by *summarizing* —
-dropping "low-information" tokens and hoping. That quietly breaks any answer that
-needed the dropped data (counts, totals, a specific record).
+**Reduce LLM prompt tokens on structured data — losslessly.**
 
-ctxfold takes the opposite approach. It re-encodes the **structure** — the
-parts that repeat on every line/row — into a denser plain-text form the model
-reads directly. Nothing is dropped. The single rule:
+Logs, JSON, and CSV are the bulkiest, most repetitive things we put into prompts.
+ctxfold folds their repeated structure into a compact, readable table the model
+reads directly — cutting tokens without dropping a byte.
 
-> **Lossless or no-op. Never lossy.**
+**How:** the same keys, prefixes, and templates repeat on every row, so ctxfold
+lifts them into a one-time header and keeps only what varies.
 
-Every encoder ships with a decoder, and `compress()` verifies that
-decoding its output reproduces the input before returning it. If it can't, you
-get your original text back, untouched. The tool cannot corrupt your data —
-worst case, it does nothing.
+**Why it matters:** an LLM doesn't need the repeated structure — it needs the
+information inside it. Strip the repetition, keep the data, and the model answers
+exactly as it would from the raw input.
 
-## Why ctxfold
+> **Lossless or no-op. Never lossy.** Every encoder ships with a decoder, and
+> `compress()` verifies that decoding its output reproduces the input before
+> returning it. If it can't, you get your original text back, untouched.
 
-The usual way to cut prompt tokens is *semantic* compression — summarize the
-input and drop "low-information" tokens. It works until the question needs the
-data that got dropped. Ask *"how many errors are in this log?"* or *"what's the
-total across these 400 rows?"* and a lossy compressor can hand back a confident,
-wrong answer, because the rows it discarded were the ones you needed. The
-compression looks great; the answer is broken.
+### The contract
 
-ctxfold makes the opposite bet. Logs, JSON arrays, and CSV are tables in
-disguise — the same keys, prefixes, and templates repeat on every line. ctxfold
-lifts those repeated parts into a one-time header and keeps only what varies,
-producing a compact, self-labeling table the model reads directly. It cuts
-**~35–40% of tokens** on templated logs and JSON arrays, fully losslessly — and
-because the output is plain, labeled text, the model reads it as well as the raw
-input. In lookup tests against GPT-4o-mini, answers off the compressed form
-matched answers off the raw data, field for field. (Readability is validated on
-GPT-4o-mini; the lossless guarantee is model-independent.)
+> **ctxfold operates on repeated records.**
+> If your data can be viewed as rows with shared structure, ctxfold folds it.
+> If it can't, ctxfold intentionally does nothing — it never guesses, and never
+> drops data.
 
-ctxfold isn't a replacement for semantic compression — it's the other half.
-Summarize to extract a subset; ctxfold to shrink repetition without losing
-anything. It shines on structured data, not prose.
+It isn't a replacement for semantic compression — it's the other half. Summarize
+to extract a subset; ctxfold to shrink repetition without losing anything. It
+shines on structured data, not prose.
+
+## Benchmarks
+
+Measured with `gpt-4o-mini` and the GPT tokenizer. "Exact match" = field-level
+lookups scored against ground truth (folded vs. raw, same questions).
+
+| Dataset          | Metric             |    Raw | Folded | Result |
+| ---------------- | ------------------ | -----: | -----: | ------ |
+| JSON (400 recs)  | exact-match lookup |  24/24 |  24/24 | reads identically |
+| JSON (400 recs)  | prompt tokens      | 18,052 | 10,956 | **39% fewer** |
+| Logs (1,200 ln)  | exact-match lookup |  23/24 |  23/24 | reads identically |
+| Logs (1,200 ln)  | prompt tokens      | 45,416 | 27,602 | **39% fewer** |
+| CSV / TSV        | char reduction     |   —    |   —    | ~30–45%* |
+
+<sub>*CSV readability not yet validated against a model; figure is character
+reduction on data with factorable redundancy.</sub>
 
 ## Install
 
@@ -167,9 +172,19 @@ vs 24/24) at ~39% fewer tokens.
 
 ## Roadmap
 
+ctxfold's focus is to be the best **tabular** structural folder — not to cover
+every format. The path, in order:
+
+- More tabular formats that map cleanly to the same core (SQL result sets,
+  Markdown tables, HTML tables)
+- Middleware/integrations for common LLM frameworks
+- Real-world datasets and benchmarks
 - One level of JSON nesting
 - Token profiler — show where a prompt's tokens go and what's compressible
-- Optional dictionary coding for low-cardinality repeated values
+
+Hierarchical data (YAML, XML, deeply nested JSON) needs a different algorithm; if
+it happens, it'll likely live as a separate `ctxfold-hierarchical` rather than
+blur this one's identity.
 
 ## License
 
