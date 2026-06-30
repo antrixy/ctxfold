@@ -177,7 +177,9 @@ function decode(encoded) {
       continue;
     }
     const row = rows[rp++];
+    if (row === undefined) throw new Error("ctxfold/logs: missing row " + rp + " (rows fewer than schema declares)");
     const toks = row.length ? row.split(" ") : [];
+    if (toks.length < L + T) throw new Error("ctxfold/logs: row " + i + " has " + toks.length + " values, schema needs at least " + (L + T));
     const leadMids = toks.slice(0, L);
     const trailMids = toks.slice(L, L + T);
     const mid = toks.slice(L + T).join(" ");
