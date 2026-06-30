@@ -96,4 +96,25 @@ function decompress(encoded) {
   return encoded; // not a ctxfold payload; return as-is
 }
 
-module.exports = { compress, decompress, estimateTokens, ENCODERS };
+// Check that a folded payload is a well-formed, self-consistent ctxfold output:
+// its schema and rows agree and it decodes cleanly. Catches drift such as a row
+// whose column count no longer matches the header, a truncated rows section, or
+// an out-of-range dictionary code.
+//
+// Scope: validate() can confirm a payload is structurally sound and decodable.
+// It CANNOT confirm a payload faithfully represents some original source it never
+// saw — that's only guaranteed for payloads ctxfold produced itself (compress()
+// self-checks at encode time). Returns { valid, encoder?, reason? }.
+function validate(payload) {
+  if (typeof payload !== "string") return { valid: false, reason: "input is not a string" };
+  const enc = ENCODERS.find((e) => payload.startsWith("\u27e6cf/" + e.name));
+  if (!enc) return { valid: false, reason: "not a ctxfold payload (no cf/ header)" };
+  try {
+    enc.decode(payload);
+    return { valid: true, encoder: enc.name };
+  } catch (e) {
+    return { valid: false, encoder: enc.name, reason: e.message };
+  }
+}
+
+module.exports = { compress, decompress, validate, estimateTokens, ENCODERS };
