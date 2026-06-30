@@ -153,6 +153,41 @@ test("json: dictionary is OFF by default (no behavior change)", () => {
   assert.strictEqual(compress(text).text, compress(text, { dictionary: false }).text);
 });
 
+// ---- validate() ------------------------------------------------------------
+
+const { validate } = require("../src/index");
+
+test("validate: accepts a well-formed payload", () => {
+  for (const text of [makeLogs(80), makeRecords(80), makeCsv(80)]) {
+    const { text: out } = compress(text);
+    const r = validate(out);
+    assert.strictEqual(r.valid, true, `expected valid for ${r.encoder}`);
+  }
+});
+
+test("validate: rejects a non-ctxfold string", () => {
+  const r = validate("just some plain text, not folded");
+  assert.strictEqual(r.valid, false);
+});
+
+test("validate: detects column drift (a dropped cell)", () => {
+  const { text: out } = compress(makeRecords(80));
+  // Corrupt one row: remove its last tab-separated cell.
+  const lines = out.split("\n");
+  const rowsIdx = lines.indexOf("rows:") + 1;
+  lines[rowsIdx] = lines[rowsIdx].split("\t").slice(0, -1).join("\t");
+  const r = validate(lines.join("\n"));
+  assert.strictEqual(r.valid, false);
+  assert.match(r.reason, /cells|columns/);
+});
+
+test("validate: detects truncated rows", () => {
+  const { text: out } = compress(makeLogs(80));
+  const lines = out.split("\n");
+  const r = validate(lines.slice(0, lines.length - 5).join("\n")); // drop 5 rows
+  assert.strictEqual(r.valid, false);
+});
+
 // ---- CSV / TSV encoder -----------------------------------------------------
 
 function makeCsv(n = 200, delim = ",") {
