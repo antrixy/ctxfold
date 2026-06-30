@@ -231,11 +231,22 @@ function decode(encoded) {
       out[i] = JSON.parse(verbatim[i]);
       continue;
     }
-    const cells = rowLines[rp++].split("\t");
+    const line = rowLines[rp++];
+    if (line === undefined) throw new Error("ctxfold/json: missing row (rows fewer than schema declares)");
+    const cells = line.split("\t");
+    if (cells.length !== cols.length) throw new Error("ctxfold/json: row has " + cells.length + " cells, schema declares " + cols.length + " columns");
     const obj = {};
     for (let c = 0; c < cols.length; c++) {
       const col = cols[c];
-      obj[col.k] = col.t === "d" ? col.dict[Number(cells[c])] : decodeByType(cells[c], col.t);
+      if (col.t === "d") {
+        const code = Number(cells[c]);
+        if (!Number.isInteger(code) || code < 0 || code >= col.dict.length) {
+          throw new Error("ctxfold/json: dictionary code '" + cells[c] + "' out of range for column '" + col.k + "'");
+        }
+        obj[col.k] = col.dict[code];
+      } else {
+        obj[col.k] = decodeByType(cells[c], col.t);
+      }
     }
     out[i] = obj;
   }
