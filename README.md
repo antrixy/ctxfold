@@ -26,6 +26,14 @@ exactly as it would from the raw input.
 > If it can't, ctxfold intentionally does nothing — it never guesses, and never
 > drops data.
 
+It's a data contract, not a prompt trick: either the model receives an
+equivalent representation, or the pipeline declines the optimization. The schema
+is *derived from the data* at encode time and the round-trip self-check verifies
+they agree, so the header can't silently drift from the rows. `validate(payload)`
+re-checks that consistency on any folded payload (catches a dropped cell, a
+truncated rows section, an out-of-range code) — note it confirms a payload is
+sound and decodable, not that it matches an original it never saw.
+
 It isn't a replacement for semantic compression — it's the other half. Summarize
 to extract a subset; ctxfold to shrink repetition without losing anything. It
 shines on structured data, not prose.
@@ -172,17 +180,20 @@ vs 24/24) at ~39% fewer tokens.
 
 ## Roadmap
 
-ctxfold's focus is to be the best **tabular** structural folder — not to cover every format. It grows along one axis: data that can be viewed as repeated records.
+ctxfold's focus is to be the best **tabular** structural folder — not to cover
+every format. The path, in order:
 
-Possible directions (not commitments, roughly in order of fit):
-
-- More tabular formats that map cleanly to the same core — SQL result sets, Markdown tables, HTML tables
-- Middleware for common LLM frameworks
+- More tabular formats that map cleanly to the same core (SQL result sets,
+  Markdown tables, HTML tables)
+- Middleware/integrations for common LLM frameworks
 - Real-world datasets and benchmarks
 - One level of JSON nesting
-- A token profiler
+- Token profiler — show where a prompt's tokens go and what's compressible
 
-Hierarchical data (YAML, XML, deeply nested JSON) needs a different algorithm. If it happens, it'll likely live as a separate `ctxfold-hierarchical` rather than blur this project's identity.
+Hierarchical data (YAML, XML, deeply nested JSON) needs a different algorithm; if
+it happens, it'll likely live as a separate `ctxfold-hierarchical` rather than
+blur this one's identity.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).
