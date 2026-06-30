@@ -112,7 +112,10 @@ function decode(encoded) {
       out[i] = verbatim[i];
       continue;
     }
-    const mids = rowLines[rp++].split(delim);
+    const rowLine = rowLines[rp++];
+    if (rowLine === undefined) throw new Error("ctxfold/csv: missing row (rows fewer than schema declares)");
+    const mids = rowLine.split(delim);
+    if (mids.length !== cols.length) throw new Error("ctxfold/csv: row has " + mids.length + " fields, schema declares " + cols.length + " columns");
     const fields = cols.map((c, idx) => c.pre + mids[idx] + c.suf);
     out[i] = fields.join(delim);
   }
