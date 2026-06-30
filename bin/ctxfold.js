@@ -9,7 +9,7 @@
 //   cat app.log | ctxfold --stats
 
 const fs = require("fs");
-const { compress, decompress } = require("../src/index");
+const { compress, decompress, validate } = require("../src/index");
 
 function readInput(file) {
   if (file) return fs.readFileSync(file, "utf8");
@@ -20,9 +20,16 @@ function main() {
   const args = process.argv.slice(2);
   const stats = args.includes("--stats");
   const undo = args.includes("--decompress");
+  const check = args.includes("--validate");
   const dictionary = args.includes("--dictionary");
   const file = args.find((a) => !a.startsWith("--"));
   const input = readInput(file);
+
+  if (check) {
+    const r = validate(input);
+    process.stdout.write(JSON.stringify(r) + "\n");
+    process.exit(r.valid ? 0 : 1);
+  }
 
   if (undo) {
     process.stdout.write(decompress(input));
