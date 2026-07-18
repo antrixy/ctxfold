@@ -118,3 +118,9 @@ function validate(payload) {
 }
 
 module.exports = { compress, decompress, validate, estimateTokens, ENCODERS };
+
+// Late-bound to avoid a circular require at load time (profile.js requires
+// this module for compress/estimateTokens).
+const { profile, renderProfile } = require("./profile");
+module.exports.profile = profile;
+module.exports.renderProfile = renderProfile;
