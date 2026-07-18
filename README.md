@@ -50,7 +50,7 @@ result was confirmed on `gpt-4o` as well (0/24 on mini).
 | JSON (400 recs)  | prompt tokens      | 18,052 | 10,956 | **39% fewer** |
 | Logs (1,200 ln)  | exact-match lookup |  23/24 |  23/24 | reads identically |
 | Logs (1,200 ln)  | prompt tokens      | 45,416 | 27,602 | **39% fewer** |
-| CSV / TSV (400r) | exact-match lookup |  24/24 |   6/24 | **not direct-readable** |
+| CSV / TSV (400r) | exact-match lookup |  24/24 |  ≤9/24 | **not direct-readable** |
 | CSV / TSV (400r) | prompt tokens      | 12,042 |  8,686 | 27.9% fewer — pipeline only |
 
 ## Install
@@ -130,8 +130,8 @@ itself and rows carry only each field's varying middle.
 
 Models don't reliably reconstruct `prefix + middle` at read time. Measured with
 the same harness as JSON/logs (`examples/gpt-csv-equivalence.js`): folded CSV
-scored 0/24 on gpt-4o-mini and 6/24 on gpt-4o against 24/24 raw — wrong rows
-matched, prefixes dropped. It's the dictionary-coding tradeoff again, but total:
+scored 0/24 on gpt-4o-mini and 6–9/24 across runs on gpt-4o against 24/24 raw —
+wrong rows matched, prefixes dropped. It's the dictionary-coding tradeoff again, but total:
 indirection through a header costs readability, and here the savings *are* the
 indirection.
 
