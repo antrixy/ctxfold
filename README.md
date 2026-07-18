@@ -41,7 +41,8 @@ shines on structured data, not prose.
 ## Benchmarks
 
 Measured with `gpt-4o-mini` and the GPT tokenizer. "Exact match" = field-level
-lookups scored against ground truth (folded vs. raw, same questions).
+lookups scored against ground truth (folded vs. raw, same questions). The CSV
+result was confirmed on `gpt-4o` as well (0/24 on mini).
 
 | Dataset          | Metric             |    Raw | Folded | Result |
 | ---------------- | ------------------ | -----: | -----: | ------ |
@@ -49,10 +50,8 @@ lookups scored against ground truth (folded vs. raw, same questions).
 | JSON (400 recs)  | prompt tokens      | 18,052 | 10,956 | **39% fewer** |
 | Logs (1,200 ln)  | exact-match lookup |  23/24 |  23/24 | reads identically |
 | Logs (1,200 ln)  | prompt tokens      | 45,416 | 27,602 | **39% fewer** |
-| CSV / TSV        | char reduction     |   —    |   —    | ~30–45%* |
-
-<sub>*CSV readability not yet validated against a model; figure is character
-reduction on data with factorable redundancy.</sub>
+| CSV / TSV (400r) | exact-match lookup |  24/24 |   6/24 | **not direct-readable** |
+| CSV / TSV (400r) | prompt tokens      | 12,042 |  8,686 | 27.9% fewer — pipeline only |
 
 ## Install
 
@@ -118,13 +117,38 @@ Use it when:
 Otherwise, leave it off — the default (~39%, fully readable) is the safe choice.
 The round-trip self-check still gates it, so it can never be lossy either way.
 
+## CSV folding is pipeline-mode
+
+CSV is the one format where folding is **not** validated for direct model
+reading — by measurement, not caution.
+
+The reason is structural. JSON and logs fold by removing *syntax* — keys,
+braces, quotes, log templates — and every value the model needs stays verbatim
+in the row. CSV has no syntax to remove; it's already a compact table. The only
+redundancy left is inside the values, so the CSV encoder affix-factors the data
+itself and rows carry only each field's varying middle.
+
+Models don't reliably reconstruct `prefix + middle` at read time. Measured with
+the same harness as JSON/logs (`examples/gpt-csv-equivalence.js`): folded CSV
+scored 0/24 on gpt-4o-mini and 6/24 on gpt-4o against 24/24 raw — wrong rows
+matched, prefixes dropped. It's the dictionary-coding tradeoff again, but total:
+indirection through a header costs readability, and here the savings *are* the
+indirection.
+
+So fold CSV only when the model never sees the folded form — lossless
+transit/storage compression in a pipeline that calls `decompress()` before the
+prompt is built. For direct model reading, send CSV raw: it's already near its
+readable minimum, which is exactly why there was nothing safe to fold.
+
+JSON and logs remain validated for direct reading.
+
 ## What it handles
 
 | Input | Detector | Typical token reduction |
 |---|---|---|
 | Templated logs (timestamp / level / `[scope]` / `key=value`) | newline-delimited, structured lines | ~35–40% |
 | JSON array of flat objects — bare `[…]` or wrapped `{"results":[…]}` | top-level array, or an object with one records array | ~39% |
-| CSV / TSV (simple, unquoted) | consistent delimiter + header + rows | ~30–45% *where columns share constants/affixes* |
+| CSV / TSV (simple, unquoted) | consistent delimiter + header + rows | ~24–28% — **pipeline only**, not direct-readable (see above) |
 
 Anything it doesn't recognize — prose, nested JSON, quoted CSV, an
 already-tight table — passes through untouched.
@@ -193,8 +217,7 @@ every format.
 
 - More tabular formats that map cleanly to the same core (SQL result sets,
   Markdown tables, HTML tables)
-- Real-world datasets and benchmarks — validate CSV readability against a model
-  (the one cell in the benchmark table still marked unvalidated)
+- Real-world datasets and benchmarks
 - Middleware/integrations for common LLM frameworks
 
 **Exploring**
@@ -202,6 +225,8 @@ every format.
 - Token profiler — show where a prompt's tokens go and what's compressible
 - Dictionary-coding readability — close the gap so `--dictionary` can be safe
   by default
+- Readable CSV folding — the current affix mechanism is pipeline-only; a
+  direct-readable variant needs a different approach, if one exists
 - Python port (`pip install ctxfold`) — open an issue if you want it
 
 **Not in scope**
@@ -209,6 +234,7 @@ every format.
 Hierarchical data (YAML, XML, deeply nested JSON) needs a different algorithm;
 if it happens, it'll live as a separate `ctxfold-hierarchical` rather than blur
 this one's identity.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).
