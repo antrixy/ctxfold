@@ -181,19 +181,33 @@ vs 24/24) at ~39% fewer tokens.
 ## Roadmap
 
 ctxfold's focus is to be the best **tabular** structural folder — not to cover
-every format. The path, in order:
+every format.
+
+**Next up**
+
+- Quoted CSV/TSV support — proper RFC 4180 field parsing so quoted cells fold
+  instead of passing through
+- One level of JSON nesting — flatten `user.name`-style paths into columns
+
+**Planned**
 
 - More tabular formats that map cleanly to the same core (SQL result sets,
   Markdown tables, HTML tables)
+- Real-world datasets and benchmarks — validate CSV readability against a model
+  (the one cell in the benchmark table still marked unvalidated)
 - Middleware/integrations for common LLM frameworks
-- Real-world datasets and benchmarks
-- One level of JSON nesting
+
+**Exploring**
+
 - Token profiler — show where a prompt's tokens go and what's compressible
+- Dictionary-coding readability — close the gap so `--dictionary` can be safe
+  by default
 
-Hierarchical data (YAML, XML, deeply nested JSON) needs a different algorithm; if
-it happens, it'll likely live as a separate `ctxfold-hierarchical` rather than
-blur this one's identity.
+**Not in scope**
 
+Hierarchical data (YAML, XML, deeply nested JSON) needs a different algorithm;
+if it happens, it'll live as a separate `ctxfold-hierarchical` rather than blur
+this one's identity.
 ## License
 
 MIT — see [LICENSE](./LICENSE).
