@@ -5,11 +5,12 @@
 //   ctxfold [file]               compress stdin or file -> stdout
 //   ctxfold --stats [file]       also print stats to stderr
 //   ctxfold --dictionary [file]  opt-in: dictionary-code low-cardinality columns
+//   ctxfold --profile [file]     analyze: composition + what folding would save
 //   ctxfold --decompress [file]  reverse a ctxfold payload
 //   cat app.log | ctxfold --stats
 
 const fs = require("fs");
-const { compress, decompress, validate } = require("../src/index");
+const { compress, decompress, validate, profile, renderProfile } = require("../src/index");
 
 function readInput(file) {
   if (file) return fs.readFileSync(file, "utf8");
@@ -21,9 +22,15 @@ function main() {
   const stats = args.includes("--stats");
   const undo = args.includes("--decompress");
   const check = args.includes("--validate");
+  const prof = args.includes("--profile");
   const dictionary = args.includes("--dictionary");
   const file = args.find((a) => !a.startsWith("--"));
   const input = readInput(file);
+
+  if (prof) {
+    process.stdout.write(renderProfile(profile(input, { dictionary })));
+    return;
+  }
 
   if (check) {
     const r = validate(input);
