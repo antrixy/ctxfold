@@ -68,7 +68,10 @@ function score(answers, truth) {
     if (!t) continue;
     for (const f of ["price", "qty", "warehouse", "supplier"]) {
       total++;
-      if (String(a[f]).trim() === String(t[f]).trim()) correct++;
+      const eq = f === "price"
+        ? Number(a[f]) === Number(t[f])
+        : String(a[f]).trim() === String(t[f]).trim();
+      if (eq) correct++;
       else misses.push(`${a.sku}.${f}: got "${a[f]}" want "${t[f]}"`);
     }
   }
