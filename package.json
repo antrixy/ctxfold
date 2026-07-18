@@ -1,6 +1,6 @@
 {
   "name": "ctxfold",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Lossless, structure-aware re-encoding of bulky text (logs, JSON, CSV) to cut LLM prompt tokens. Lossless or no-op — never lossy.",
   "type": "commonjs",
   "main": "src/index.js",
