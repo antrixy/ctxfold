@@ -87,8 +87,62 @@ compress(bigBlob, { countTokens: (s) => encode(s).length });
 ```bash
 cat app.log | ctxfold --stats        # compress stdin -> stdout, stats to stderr
 ctxfold data.json > packed.txt        # compress a file
+ctxfold --profile data.json           # analyze: where tokens go, what's foldable
 ctxfold --dictionary data.json        # opt-in: dictionary-code low-cardinality columns
 ctxfold --decompress packed.txt       # reverse it
+```
+
+## Token profiler
+
+`--profile` answers "where do this prompt's tokens go, and what would folding
+save?" — without transforming anything the model reads.
+
+```
+$ ctxfold --profile users.json
+
+[ctxfold profile]
+format      JSON array — 300 records × 7 fields
+size        65,614 chars ≈ 16,404 tokens (estimated; pass a tokenizer for exact)
+
+where the characters go
+  keys         27%   repeated field names (with quotes)
+  syntax        7%   braces, brackets, commas, colons
+  values       36%   the data itself (with string quotes)
+  whitespace   30%   indentation and spacing
+
+foldable (lossless, verified by round-trip)
+  fold             -66%   direct-readable — validated 24/24 vs raw
+  + --dictionary   -73%   readability tradeoff — off by default, see README
+
+verdict: fold it — 16,404 → ~5,595 tokens (~66% fewer)
+```
+
+The numbers follow the same rules as the benchmark table:
+
+- **Composition is measured in characters and attributed exactly** — the
+  categories sum to the input size. Attributing individual *tokens* to
+  categories would be false precision, so token figures are totals only,
+  marked estimated unless you pass a real tokenizer.
+- **The "foldable" figures come from actually running `compress()`** on your
+  input — the profiler can never promise more than the encoder delivers.
+- **Readability claims mirror the measured results**: JSON and logs are
+  validated direct-readable; CSV is flagged pipeline-only.
+
+If nothing folds, the profiler says why (quoted CSV, nested JSON, too few
+records, prose) instead of silently no-opping.
+
+Programmatic use returns structured data:
+
+```js
+const { profile, renderProfile } = require("ctxfold");
+const report = profile(text);                 // { format, composition, foldable, verdict, ... }
+console.log(renderProfile(report));           // the CLI's text report
+```
+
+Try it with zero setup — no API key needed:
+
+```bash
+node examples/profile-demo.js
 ```
 
 ## Dictionary coding (opt-in)
@@ -209,20 +263,19 @@ every format.
 
 **Next up**
 
-- Quoted CSV/TSV support — proper RFC 4180 field parsing so quoted cells fold
-  instead of passing through
 - One level of JSON nesting — flatten `user.name`-style paths into columns
 
 **Planned**
 
 - More tabular formats that map cleanly to the same core (SQL result sets,
   Markdown tables, HTML tables)
+- Quoted CSV/TSV support — RFC 4180 field parsing so quoted cells fold; scoped
+  to byte-exactness only, since CSV folding is pipeline-mode
 - Real-world datasets and benchmarks
 - Middleware/integrations for common LLM frameworks
 
 **Exploring**
 
-- Token profiler — show where a prompt's tokens go and what's compressible
 - Dictionary-coding readability — close the gap so `--dictionary` can be safe
   by default
 - Readable CSV folding — the current affix mechanism is pipeline-only; a
