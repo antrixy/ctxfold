@@ -202,6 +202,7 @@ every format.
 - Token profiler — show where a prompt's tokens go and what's compressible
 - Dictionary-coding readability — close the gap so `--dictionary` can be safe
   by default
+- Python port (`pip install ctxfold`) — open an issue if you want it
 
 **Not in scope**
 
