@@ -250,7 +250,10 @@ verdict: <span class="g">fold it — 16,404 → ~5,595 tokens (~66% fewer)</span
       <tr class="warn"><td>CSV / TSV (400 recs)</td><td>24/24</td><td>≤9/24</td><td class="num">28%</td><td>pipeline only</td></tr>
     </tbody>
   </table>
-  <p class="foot">The CSV result is a published negative: CSV has no syntax to remove, so folding it
+  <p class="foot">Table shows the original GPT-4o-mini runs; the full four-model matrix (including
+  the one model that reads folded CSV correctly) is in the
+  <a href="https://github.com/antrixy/ctxfold#cross-model-readability">README</a>.
+  The CSV result is a published negative: CSV has no syntax to remove, so folding it
   factors the data itself — and models don't reliably reconstruct values through a header.
   Fold CSV for lossless transit and <code>decompress()</code> before the model reads it; for direct
   reading, send CSV raw.
