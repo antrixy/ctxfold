@@ -56,30 +56,33 @@ result was confirmed on `gpt-4o` as well (0/24 on mini).
 ### Cross-model readability
 
 The same harnesses, run unchanged against other providers via their
-OpenAI-compatible endpoints. Dataset sizes vary to fit free-tier rate limits
-(noted per row); logs come from `examples/make-sample-log.js`, a seeded
-generator that prints its exact ground truth. Qwen3.6-27B is a reasoning
-model and ran with an enlarged completion budget (`MAX_TOKENS`) for its
-thinking phase; the non-reasoning models answered within the default budget.
+OpenAI-compatible endpoints. Qwen3.6-27B is a reasoning model and ran with an
+enlarged completion budget (`MAX_TOKENS`); dataset sizes vary per run to fit
+free-tier rate limits (details below the table).
 
-| Dataset | Model | Raw | Folded | Result |
-| ------- | ----- | --- | ------ | ------ |
-| JSON (180 recs) | gpt-4o-mini | 24/24 | 24/24 | reads identically |
-| JSON (180 recs) | llama-3.3-70b | 24/24 | 24/24 | reads identically |
-| JSON (80 recs)  | qwen3.6-27b | 24/24 | 24/24 | reads identically |
-| Logs (260 ln, truth: 23 errs, worker 11) | gpt-4o-mini | 32 errs, worker 12 | 22 errs, worker 10 | folded closer to truth |
-| Logs (260 ln, truth: 23 errs, worker 11) | llama-3.3-70b | 17 errs, worker 9 | 24 errs, worker 11 | folded closer to truth |
-| Logs (120 ln, truth: 10 errs, api 4) | qwen3.6-27b | 10 errs, api 4 | 10 errs, api 4 | **exact on both** |
-| CSV (180 recs)  | gpt-4o-mini | 20/20 | 1/24 | not direct-readable |
-| CSV (180 recs)  | llama-3.3-70b | 24/24 | 0/0¹ | not direct-readable |
-| CSV (120/40 recs) | qwen3.6-27b | 24/24 | 24/24² | readable via reasoning — but see ² |
+| Format | gpt-4o-mini | llama-3.3-70b | qwen3.6-27b (reasoning) |
+| ------ | ----------- | ------------- | ----------------------- |
+| JSON   | 24/24, = raw | 24/24, = raw | 24/24, = raw |
+| Logs   | folded closer to truth | folded closer to truth | exact on both |
+| CSV    | fails (1/24) | fails (0/0)¹ | 24/24 via reasoning² |
 
-Notes on reading this honestly:
+Run details:
 
-- The logs question is aggregate counting (total ERRORs + top service). The
-  non-reasoning models answered it inexactly on raw text and got *closer to
-  ground truth* on the folded columnar form; the reasoning model answered it
-  exactly on both forms. In no run did folding make logs less answerable.
+- **JSON** — exact-match lookup, folded vs raw, scored against ground truth.
+  180 records (GPT, Llama), 80 (Qwen). Every model, both forms: 24/24.
+- **Logs** — aggregate question (total ERROR lines + top service) on a seeded
+  log from `examples/make-sample-log.js`, which prints its exact ground truth.
+  On a 260-line log (truth: 23 errors, worker 11), gpt-4o-mini answered
+  32/worker-12 on raw vs 22/worker-10 folded; llama-3.3-70b answered
+  17/worker-9 raw vs 24/worker-11 folded — both inexact everywhere, both
+  *closer to truth on the folded form*. On a 120-line log (truth: 10 errors,
+  api 4), qwen3.6-27b was exactly right on both forms. In no run did folding
+  make logs less answerable.
+- **CSV** — exact-match lookup through the legend's prefix/suffix rules.
+  180 records (GPT, Llama), 120/40 (Qwen).
+
+Notes:
+
 - ¹ Llama's CSV failure mode differs from GPT's: it mangled the folded SKUs
   themselves, so zero answers aligned with any record (0 scoreable fields),
   where GPT aligned records but mis-reconstructed values. Same conclusion,
