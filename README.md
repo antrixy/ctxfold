@@ -231,10 +231,17 @@ a lossy result.
 
 ## Not a semantic compressor
 
-ctxfold doesn't summarize and won't help with prose — for that, use semantic
-compression (to extract a subset) or retrieval (to send only relevant chunks).
-The two **compose**: summarize to pick what matters, then ctxfold to shrink the
-repetition in what's left.
+ctxfold doesn't summarize and won't help with prose. Tools that compress
+meaning — summarization, retrieval, or token-pruning approaches like
+LLMLingua — reach far higher ratios by discarding information they judge
+unlikely to matter. That judgment can't be verified task-independently:
+whether a dropped detail mattered depends on the question asked later.
+
+ctxfold takes only the compression that costs no trust — structural
+redundancy, verified byte-for-byte on every encode. The two compose:
+summarize or retrieve to pick what matters, then ctxfold to shrink the
+repetition in what's left. Just note the guarantees don't transfer — the
+lossless contract covers the fold, not what the picker dropped.
 
 ## Tests & benchmark
 
