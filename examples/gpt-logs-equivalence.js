@@ -25,6 +25,7 @@ const { compress } = require("../src/index");
 
 const MODEL = process.env.MODEL || "gpt-4o-mini";
 const SLEEP_MS = Number(process.env.SLEEP_MS || 0);
+const MAX_TOKENS = Number(process.env.MAX_TOKENS || 200);
 const QUESTION =
   "Using only the log data, answer concisely: (1) how many lines have level ERROR? " +
   "(2) which single service emits the most ERROR lines, and how many? Give the numbers.";
@@ -42,19 +43,21 @@ function loadLogs(file) {
 async function ask(client, label, logText, primer) {
   const res = await client.chat.completions.create({
     model: MODEL,
-    max_tokens: 200,
+    max_tokens: MAX_TOKENS,
     messages: [
       { role: "system", content: "You analyze server logs. Be precise and concise." },
       { role: "user", content: `${QUESTION}\n\n${primer}${logText}` },
     ],
   });
-  return { text: res.choices[0].message.content.trim(), ptok: res.usage?.prompt_tokens ?? null };
+  const text = res.choices[0].message.content
+    .replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  return { text, ptok: res.usage?.prompt_tokens ?? null };
 }
 
 async function judge(client, a, b) {
   const res = await client.chat.completions.create({
     model: MODEL,
-    max_tokens: 150,
+    max_tokens: MAX_TOKENS,
     messages: [
       { role: "system", content:
         "Two answers to the same log question. Do they report the SAME numbers and " +
@@ -62,8 +65,15 @@ async function judge(client, a, b) {
       { role: "user", content: `RAW answer:\n${a}\n\nCOMPRESSED answer:\n${b}` },
     ],
   });
-  try { return JSON.parse(res.choices[0].message.content.replace(/```json|```/g, "").trim()); }
-  catch { return { match: null, note: "judge parse failed" }; }
+  const raw = res.choices[0].message.content
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .replace(/```json|```/g, "").trim();
+  try { return JSON.parse(raw); }
+  catch {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (m) { try { return JSON.parse(m[0]); } catch { /* fall through */ } }
+    return { match: null, note: "judge parse failed" };
+  }
 }
 
 async function main() {
@@ -88,6 +98,7 @@ async function main() {
   const A = await ask(client, "raw", raw, "");
   if (SLEEP_MS) await new Promise((r) => setTimeout(r, SLEEP_MS));
   const B = await ask(client, "compressed", packed, primerCompressed);
+  if (SLEEP_MS) await new Promise((r) => setTimeout(r, SLEEP_MS));
   const v = await judge(client, A.text, B.text);
 
   console.log(`\nmodel: ${MODEL}`);
