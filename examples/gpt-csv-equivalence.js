@@ -29,6 +29,7 @@ const MODEL = process.env.MODEL || "gpt-4o-mini";
 const N = 6;
 const RECORDS = Number(process.env.RECORDS || 400);
 const SLEEP_MS = Number(process.env.SLEEP_MS || 0);
+const MAX_TOKENS = Number(process.env.MAX_TOKENS || 700);
 
 function makeCsv(n = 400) {
   const cats = ["packaging", "equipment", "labels", "ppe", "electrical"];
@@ -58,7 +59,7 @@ function makeCsv(n = 400) {
 async function lookup(client, dataText, primer, skus) {
   const res = await client.chat.completions.create({
     model: MODEL,
-    max_tokens: 700,
+    max_tokens: MAX_TOKENS,
     messages: [
       { role: "system", content: "You read structured product data and extract exact field values." },
       { role: "user", content:
