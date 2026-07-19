@@ -56,35 +56,49 @@ result was confirmed on `gpt-4o` as well (0/24 on mini).
 ### Cross-model readability
 
 The same harnesses, run unchanged against other providers via their
-OpenAI-compatible endpoints (smaller datasets to fit free-tier rate limits:
-180 records, and a seeded 260-line log from `examples/make-sample-log.js`
-with a known ground truth of 23 ERROR lines, top service `worker` at 11).
+OpenAI-compatible endpoints. Dataset sizes vary to fit free-tier rate limits
+(noted per row); logs come from `examples/make-sample-log.js`, a seeded
+generator that prints its exact ground truth. Qwen3.6-27B is a reasoning
+model and ran with an enlarged completion budget (`MAX_TOKENS`) for its
+thinking phase; the non-reasoning models answered within the default budget.
 
 | Dataset | Model | Raw | Folded | Result |
 | ------- | ----- | --- | ------ | ------ |
 | JSON (180 recs) | gpt-4o-mini | 24/24 | 24/24 | reads identically |
 | JSON (180 recs) | llama-3.3-70b | 24/24 | 24/24 | reads identically |
-| Logs (260 ln)   | gpt-4o-mini | 32 errs, worker 12 | 22 errs, worker 10 | folded closer to truth |
-| Logs (260 ln)   | llama-3.3-70b | 17 errs, worker 9 | 24 errs, worker 11 | folded closer to truth |
+| JSON (80 recs)  | qwen3.6-27b | 24/24 | 24/24 | reads identically |
+| Logs (260 ln, truth: 23 errs, worker 11) | gpt-4o-mini | 32 errs, worker 12 | 22 errs, worker 10 | folded closer to truth |
+| Logs (260 ln, truth: 23 errs, worker 11) | llama-3.3-70b | 17 errs, worker 9 | 24 errs, worker 11 | folded closer to truth |
+| Logs (120 ln, truth: 10 errs, api 4) | qwen3.6-27b | 10 errs, api 4 | 10 errs, api 4 | **exact on both** |
 | CSV (180 recs)  | gpt-4o-mini | 20/20 | 1/24 | not direct-readable |
 | CSV (180 recs)  | llama-3.3-70b | 24/24 | 0/0¹ | not direct-readable |
+| CSV (120/40 recs) | qwen3.6-27b | 24/24 | 24/24² | readable via reasoning — but see ² |
 
 Notes on reading this honestly:
 
-- The logs question is aggregate counting (total ERRORs + top service), which
-  no model answered exactly on the raw text. Both models got *closer to ground
-  truth* reading the folded columnar form than the raw log — folding helped.
-  The claim is "at least as answerable," not "models count perfectly."
+- The logs question is aggregate counting (total ERRORs + top service). The
+  non-reasoning models answered it inexactly on raw text and got *closer to
+  ground truth* on the folded columnar form; the reasoning model answered it
+  exactly on both forms. In no run did folding make logs less answerable.
 - ¹ Llama's CSV failure mode differs from GPT's: it mangled the folded SKUs
   themselves, so zero answers aligned with any record (0 scoreable fields),
   where GPT aligned records but mis-reconstructed values. Same conclusion,
   worse failure.
+- ² The reasoning-model CSV result cuts both ways. Qwen3.6-27B scored 24/24
+  in both runs where its reasoning completed (120 and 40 records), visibly
+  deriving the legend's prefix/suffix rules step by step — so the fold *is*
+  reconstructable by a model, deterministically. But two further runs
+  truncated mid-derivation at 3,000 and 4,500 thinking tokens, and at 40
+  records the fold only saved ~7% of prompt tokens. Spending thousands of
+  variable-length completion tokens to undo a ~15–25% prompt saving is a bad
+  trade: the fold doesn't delete the reconstruction work, it moves it into
+  the model. CSV therefore stays **pipeline-only** as a recommendation.
 - Accuracy is the cross-model claim. Token-% figures elsewhere in this README
-  are per-tokenizer (GPT tokenizer unless stated); folded token savings on
-  Llama's tokenizer measured 38–46% on these runs.
+  are per-tokenizer (GPT tokenizer unless stated); folded savings measured
+  38–46% on Llama's tokenizer and 31–41% on Qwen's across these runs.
 - Claude results pending. The harnesses accept any OpenAI-compatible endpoint
-  (`OPENAI_BASE_URL` + `MODEL`); reproduce with `RECORDS=180` and the seeded
-  log generator.
+  (`OPENAI_BASE_URL` + `MODEL`); knobs for constrained tiers: `RECORDS`,
+  `SLEEP_MS`, `MAX_TOKENS`, plus the seeded log generator.
 
 ## Install
 
