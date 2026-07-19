@@ -53,6 +53,39 @@ result was confirmed on `gpt-4o` as well (0/24 on mini).
 | CSV / TSV (400r) | exact-match lookup |  24/24 |  ≤9/24 | **not direct-readable** |
 | CSV / TSV (400r) | prompt tokens      | 12,042 |  8,686 | 27.9% fewer — pipeline only |
 
+### Cross-model readability
+
+The same harnesses, run unchanged against other providers via their
+OpenAI-compatible endpoints (smaller datasets to fit free-tier rate limits:
+180 records, and a seeded 260-line log from `examples/make-sample-log.js`
+with a known ground truth of 23 ERROR lines, top service `worker` at 11).
+
+| Dataset | Model | Raw | Folded | Result |
+| ------- | ----- | --- | ------ | ------ |
+| JSON (180 recs) | gpt-4o-mini | 24/24 | 24/24 | reads identically |
+| JSON (180 recs) | llama-3.3-70b | 24/24 | 24/24 | reads identically |
+| Logs (260 ln)   | gpt-4o-mini | 32 errs, worker 12 | 22 errs, worker 10 | folded closer to truth |
+| Logs (260 ln)   | llama-3.3-70b | 17 errs, worker 9 | 24 errs, worker 11 | folded closer to truth |
+| CSV (180 recs)  | gpt-4o-mini | 20/20 | 1/24 | not direct-readable |
+| CSV (180 recs)  | llama-3.3-70b | 24/24 | 0/0¹ | not direct-readable |
+
+Notes on reading this honestly:
+
+- The logs question is aggregate counting (total ERRORs + top service), which
+  no model answered exactly on the raw text. Both models got *closer to ground
+  truth* reading the folded columnar form than the raw log — folding helped.
+  The claim is "at least as answerable," not "models count perfectly."
+- ¹ Llama's CSV failure mode differs from GPT's: it mangled the folded SKUs
+  themselves, so zero answers aligned with any record (0 scoreable fields),
+  where GPT aligned records but mis-reconstructed values. Same conclusion,
+  worse failure.
+- Accuracy is the cross-model claim. Token-% figures elsewhere in this README
+  are per-tokenizer (GPT tokenizer unless stated); folded token savings on
+  Llama's tokenizer measured 38–46% on these runs.
+- Claude results pending. The harnesses accept any OpenAI-compatible endpoint
+  (`OPENAI_BASE_URL` + `MODEL`); reproduce with `RECORDS=180` and the seeded
+  log generator.
+
 ## Install
 
 ```bash
@@ -251,10 +284,10 @@ npm i -D gpt-tokenizer         # optional, exact token counts
 npm run bench [file]           # token reduction on logs (or your own file)
 ```
 
-The `examples/` folder has GPT readability checks: they ask a model to read
-records out of the compressed form and score against exact ground truth. In
-testing, compressed read as accurately as raw (logs 23/24 vs 23/24, JSON 24/24
-vs 24/24) at ~39% fewer tokens.
+The `examples/` folder has model readability checks: they ask a model to read
+records out of the compressed form and score against exact ground truth. They
+accept any OpenAI-compatible endpoint (`OPENAI_BASE_URL` + `MODEL` env vars);
+results across models are in the cross-model readability table above.
 
 ## Scope (v0)
 
