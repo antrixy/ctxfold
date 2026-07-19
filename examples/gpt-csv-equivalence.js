@@ -67,8 +67,14 @@ async function lookup(client, dataText, primer, skus) {
         `Return ONLY a JSON array of {"sku","price","qty","warehouse","supplier"}.\n\n${dataText}` },
     ],
   });
-  const raw = res.choices[0].message.content.replace(/```json|```/g, "").trim();
-  let arr = []; try { arr = JSON.parse(raw); } catch { /* empty */ }
+  const raw = res.choices[0].message.content
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .replace(/```json|```/g, "").trim();
+  let arr = []; try { arr = JSON.parse(raw); } catch {
+    const m = raw.match(/\[[\s\S]*\]/);
+    if (m) { try { arr = JSON.parse(m[0]); } catch { /* empty */ } }
+  }
+  if (!arr.length && process.env.DEBUG) console.error("unparsed reply:\n" + raw.slice(0, 600));
   return { rows: arr, ptok: res.usage?.prompt_tokens ?? null };
 }
 
@@ -129,7 +135,11 @@ async function main() {
   console.log(`  COMPRESSED  ${sb.correct}/${sb.total}`);
   if (sb.misses.length) { console.log(`\ncompressed misses:`); sb.misses.forEach((m) => console.log("  " + m)); }
   if (sa.misses.length) { console.log(`\nraw misses:`); sa.misses.forEach((m) => console.log("  " + m)); }
-  console.log(`\nVERDICT: ${sb.correct >= sa.correct ? "compressed reads as well as (or better than) raw" : "compressed reads worse — adjust format"}`);
+  if (sa.total === 0 && sb.total === 0) {
+    console.log(`\nVERDICT: no scoreable answers on either side — parse or alignment failure, not a readability result (rerun with DEBUG=1)`);
+  } else {
+    console.log(`\nVERDICT: ${sb.correct >= sa.correct ? "compressed reads as well as (or better than) raw" : "compressed reads worse — adjust format"}`);
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
