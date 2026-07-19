@@ -60,26 +60,29 @@ OpenAI-compatible endpoints. Qwen3.6-27B is a reasoning model and ran with an
 enlarged completion budget (`MAX_TOKENS`); dataset sizes vary per run to fit
 free-tier rate limits (details below the table).
 
-| Format | gpt-4o-mini | llama-3.3-70b | qwen3.6-27b (reasoning) |
-| ------ | ----------- | ------------- | ----------------------- |
-| JSON   | 24/24, = raw | 24/24, = raw | 24/24, = raw |
-| Logs   | folded closer to truth | folded closer to truth | exact on both |
-| CSV    | fails (1/24) | fails (0/0)¹ | 24/24 via reasoning² |
+| Format | gpt-4o-mini | llama-3.3-70b | qwen3.6-27b (reasoning) | claude-haiku-4-5 |
+| ------ | ----------- | ------------- | ----------------------- | --------------- |
+| JSON   | 24/24, = raw | 24/24, = raw | 24/24, = raw | 24/24, = raw |
+| Logs   | folded closer to truth | folded closer to truth | exact on both | folded closer to truth |
+| CSV    | fails (1/24) | fails (0/0)¹ | 24/24 via reasoning² | 24/24³ |
 
 Run details:
 
 - **JSON** — exact-match lookup, folded vs raw, scored against ground truth.
-  180 records (GPT, Llama), 80 (Qwen). Every model, both forms: 24/24.
+  180 records (GPT, Llama, Claude), 80 (Qwen). Every model, both forms: 24/24.
+  Claude: chars 24,677→9,747 (60.5%), prompt tokens 9,044→5,848 (35.3% fewer).
 - **Logs** — aggregate question (total ERROR lines + top service) on a seeded
   log from `examples/make-sample-log.js`, which prints its exact ground truth.
   On a 260-line log (truth: 23 errors, worker 11), gpt-4o-mini answered
   32/worker-12 on raw vs 22/worker-10 folded; llama-3.3-70b answered
-  17/worker-9 raw vs 24/worker-11 folded — both inexact everywhere, both
+  17/worker-9 raw vs 24/worker-11 folded; claude-haiku-4-5 answered
+  20/worker-8 raw vs 21/worker-10 folded — all inexact everywhere, all
   *closer to truth on the folded form*. On a 120-line log (truth: 10 errors,
   api 4), qwen3.6-27b was exactly right on both forms. In no run did folding
   make logs less answerable.
 - **CSV** — exact-match lookup through the legend's prefix/suffix rules.
-  180 records (GPT, Llama), 120/40 (Qwen).
+  180 records (GPT, Llama, Claude), 120/40 (Qwen).
+  Claude: chars 10,233→8,139 (20.5%), prompt tokens 6,166→4,634 (24.8% fewer).
 
 Notes:
 
@@ -96,12 +99,15 @@ Notes:
   variable-length completion tokens to undo a ~15–25% prompt saving is a bad
   trade: the fold doesn't delete the reconstruction work, it moves it into
   the model. CSV therefore stays **pipeline-only** as a recommendation.
+- ³ claude-haiku-4-5 read the folded CSV 24/24 with no visible reasoning
+  overhead — the only model to do so. One model reading it correctly
+  doesn't change the recommendation: folded CSV still fails on GPT and
+  Llama, so it's only safe to send directly if you've pinned your model
+  *and* measured it, which is the dictionary-coding caveat again. CSV
+  stays pipeline-only by default.
 - Accuracy is the cross-model claim. Token-% figures elsewhere in this README
   are per-tokenizer (GPT tokenizer unless stated); folded savings measured
-  38–46% on Llama's tokenizer and 31–41% on Qwen's across these runs.
-- Claude results pending. The harnesses accept any OpenAI-compatible endpoint
-  (`OPENAI_BASE_URL` + `MODEL`); knobs for constrained tiers: `RECORDS`,
-  `SLEEP_MS`, `MAX_TOKENS`, plus the seeded log generator.
+  38–46% on Llama's tokenizer, 31–41% on Qwen's, and 24.8–35.3% on Claude's across these runs.
 
 ## Install
 
