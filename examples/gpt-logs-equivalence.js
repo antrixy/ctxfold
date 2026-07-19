@@ -9,6 +9,12 @@
 //   node examples/gpt-logs-equivalence.js /tmp/real.log
 //   # or point straight at the fixture (auto-extracts the log block):
 //   node examples/gpt-logs-equivalence.js ~/token-bench/ab-openai/fixtures/heavy-logs.json
+//
+// Cross-provider (any OpenAI-compatible endpoint):
+//   OPENAI_API_KEY=$ANTHROPIC_API_KEY OPENAI_BASE_URL=https://api.anthropic.com/v1 \
+//     MODEL=claude-haiku-4-5 node examples/gpt-logs-equivalence.js /tmp/real.log
+//   OPENAI_API_KEY=$GROQ_API_KEY OPENAI_BASE_URL=https://api.groq.com/openai/v1 \
+//     MODEL=llama-3.3-70b-versatile node examples/gpt-logs-equivalence.js /tmp/real.log
 
 const fs = require("fs");
 const OpenAI = require("openai");
@@ -32,19 +38,19 @@ function loadLogs(file) {
 async function ask(client, label, logText, primer) {
   const res = await client.chat.completions.create({
     model: MODEL,
-    max_completion_tokens: 200,
+    max_tokens: 200,
     messages: [
       { role: "system", content: "You analyze server logs. Be precise and concise." },
       { role: "user", content: `${QUESTION}\n\n${primer}${logText}` },
     ],
   });
-  return { text: res.choices[0].message.content.trim(), ptok: res.usage.prompt_tokens };
+  return { text: res.choices[0].message.content.trim(), ptok: res.usage?.prompt_tokens ?? null };
 }
 
 async function judge(client, a, b) {
   const res = await client.chat.completions.create({
     model: MODEL,
-    max_completion_tokens: 150,
+    max_tokens: 150,
     messages: [
       { role: "system", content:
         "Two answers to the same log question. Do they report the SAME numbers and " +
@@ -67,7 +73,10 @@ async function main() {
     process.exit(1);
   }
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL || undefined,
+  });
   const primerCompressed =
     "The logs are in a compact columnar format. The 'cols:' line names the columns; " +
     "each row lists those values in order, with the free-text message last.\n\n";
@@ -77,8 +86,12 @@ async function main() {
   const v = await judge(client, A.text, B.text);
 
   console.log(`\nmodel: ${MODEL}`);
-  console.log(`prompt tokens   raw=${A.ptok}   compressed=${B.ptok}   ` +
-    `(${(100 * (1 - B.ptok / A.ptok)).toFixed(1)}% fewer)`);
+  if (A.ptok != null && B.ptok != null) {
+    console.log(`prompt tokens   raw=${A.ptok}   compressed=${B.ptok}   ` +
+      `(${(100 * (1 - B.ptok / A.ptok)).toFixed(1)}% fewer)`);
+  } else {
+    console.log(`prompt tokens   raw=${A.ptok ?? "n/a"}   compressed=${B.ptok ?? "n/a"}   (provider omitted usage)`);
+  }
   console.log(`\n--- RAW answer ---\n${A.text}`);
   console.log(`\n--- COMPRESSED answer ---\n${B.text}`);
   console.log(`\nEQUIVALENT: ${v.match}   ${v.note ? "(" + v.note + ")" : ""}`);

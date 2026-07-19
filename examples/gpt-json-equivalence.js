@@ -7,6 +7,12 @@
 //   cd ~/ctxfold && npm i openai
 //   export OPENAI_API_KEY=sk-...
 //   node examples/gpt-json-equivalence.js
+//
+// Cross-provider (any OpenAI-compatible endpoint):
+//   OPENAI_API_KEY=$ANTHROPIC_API_KEY OPENAI_BASE_URL=https://api.anthropic.com/v1 \
+//     MODEL=claude-haiku-4-5 node examples/gpt-json-equivalence.js
+//   OPENAI_API_KEY=$GROQ_API_KEY OPENAI_BASE_URL=https://api.groq.com/openai/v1 \
+//     MODEL=llama-3.3-70b-versatile node examples/gpt-json-equivalence.js
 
 const OpenAI = require("openai");
 const { compress } = require("../src/index");
@@ -33,7 +39,7 @@ function makeRecords(n = 400) {
 async function lookup(client, dataText, primer, skus) {
   const res = await client.chat.completions.create({
     model: MODEL,
-    max_completion_tokens: 700,
+    max_tokens: 700,
     messages: [
       { role: "system", content: "You read structured product data and extract exact field values." },
       { role: "user", content:
@@ -44,7 +50,7 @@ async function lookup(client, dataText, primer, skus) {
   });
   const raw = res.choices[0].message.content.replace(/```json|```/g, "").trim();
   let arr = []; try { arr = JSON.parse(raw); } catch { /* empty */ }
-  return { rows: arr, ptok: res.usage.prompt_tokens };
+  return { rows: arr, ptok: res.usage?.prompt_tokens ?? null };
 }
 
 function score(answers, truth) {
@@ -76,7 +82,10 @@ async function main() {
   const truth = Object.fromEntries(picks.map((p) => [p.sku, p]));
   const skus = picks.map((p) => p.sku);
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL || undefined,
+  });
   const primer = "The data is a compact table: the 'cols:' line names the columns; each row is " +
     "tab-separated values in that order, one row per record.\n\n";
 
@@ -86,7 +95,11 @@ async function main() {
 
   console.log(`\nmodel: ${MODEL}   records: ${skus.length}   encoder: ${stats.encoder}`);
   console.log(`chars ${stats.charsBefore}->${stats.charsAfter} (${(stats.charRatio * 100).toFixed(1)}% smaller)`);
-  console.log(`prompt tokens   raw=${A.ptok}   compressed=${B.ptok}   (${(100 * (1 - B.ptok / A.ptok)).toFixed(1)}% fewer)`);
+  if (A.ptok != null && B.ptok != null) {
+    console.log(`prompt tokens   raw=${A.ptok}   compressed=${B.ptok}   (${(100 * (1 - B.ptok / A.ptok)).toFixed(1)}% fewer)`);
+  } else {
+    console.log(`prompt tokens   raw=${A.ptok ?? "n/a"}   compressed=${B.ptok ?? "n/a"}   (provider omitted usage)`);
+  }
   console.log(`\nfield accuracy vs ground truth:`);
   console.log(`  RAW         ${sa.correct}/${sa.total}`);
   console.log(`  COMPRESSED  ${sb.correct}/${sb.total}`);
