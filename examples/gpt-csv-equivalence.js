@@ -15,6 +15,9 @@
 //   OPENAI_API_KEY=$GROQ_API_KEY OPENAI_BASE_URL=https://api.groq.com/openai/v1 \
 //     MODEL=llama-3.3-70b-versatile node examples/gpt-csv-equivalence.js
 //
+// RECORDS=180 shrinks the dataset (free-tier TPM limits); SLEEP_MS=61000
+// pauses between the raw and compressed calls so they don't share a minute.
+//
 // The interesting part vs. the JSON test: folded CSV rows keep only each
 // field's varying middle — the model must reconstitute full values through the
 // legend's prefix/suffix rules (e.g. warehouse "CHI-1" -> "WH-CHI-1").
@@ -24,6 +27,8 @@ const { compress } = require("../src/index");
 
 const MODEL = process.env.MODEL || "gpt-4o-mini";
 const N = 6;
+const RECORDS = Number(process.env.RECORDS || 400);
+const SLEEP_MS = Number(process.env.SLEEP_MS || 0);
 
 function makeCsv(n = 400) {
   const cats = ["packaging", "equipment", "labels", "ppe", "electrical"];
@@ -86,7 +91,7 @@ function score(answers, truth) {
 
 async function main() {
   if (!process.env.OPENAI_API_KEY) { console.error("Set OPENAI_API_KEY"); process.exit(1); }
-  const { text: rawText, recs } = makeCsv(400);
+  const { text: rawText, recs } = makeCsv(RECORDS);
   const { text: packed, stats } = compress(rawText);
   if (stats.encoder !== "csv") { console.error(`expected csv encoder, got ${stats.encoder}`); process.exit(1); }
 
@@ -108,10 +113,11 @@ async function main() {
     "prefix/suffix rules and report the FULL values.\n\n";
 
   const A = await lookup(client, rawText, "", skus);
+  if (SLEEP_MS) await new Promise((r) => setTimeout(r, SLEEP_MS));
   const B = await lookup(client, packed, primer, skus);
   const sa = score(A.rows, truth), sb = score(B.rows, truth);
 
-  console.log(`\nmodel: ${MODEL}   records: ${skus.length}   encoder: ${stats.encoder}`);
+  console.log(`\nmodel: ${MODEL}   dataset: ${RECORDS} records   probed: ${skus.length}   encoder: ${stats.encoder}`);
   console.log(`chars ${stats.charsBefore}->${stats.charsAfter} (${(stats.charRatio * 100).toFixed(1)}% smaller)`);
   if (A.ptok != null && B.ptok != null) {
     console.log(`prompt tokens   raw=${A.ptok}   compressed=${B.ptok}   (${(100 * (1 - B.ptok / A.ptok)).toFixed(1)}% fewer)`);
