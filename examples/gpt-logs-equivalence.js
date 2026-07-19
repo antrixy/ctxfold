@@ -15,12 +15,16 @@
 //     MODEL=claude-haiku-4-5 node examples/gpt-logs-equivalence.js /tmp/real.log
 //   OPENAI_API_KEY=$GROQ_API_KEY OPENAI_BASE_URL=https://api.groq.com/openai/v1 \
 //     MODEL=llama-3.3-70b-versatile node examples/gpt-logs-equivalence.js /tmp/real.log
+//
+// SLEEP_MS=61000 pauses between the raw and compressed calls (free-tier TPM
+// limits). Trim the log file itself if a single request is still too large.
 
 const fs = require("fs");
 const OpenAI = require("openai");
 const { compress } = require("../src/index");
 
 const MODEL = process.env.MODEL || "gpt-4o-mini";
+const SLEEP_MS = Number(process.env.SLEEP_MS || 0);
 const QUESTION =
   "Using only the log data, answer concisely: (1) how many lines have level ERROR? " +
   "(2) which single service emits the most ERROR lines, and how many? Give the numbers.";
@@ -82,6 +86,7 @@ async function main() {
     "each row lists those values in order, with the free-text message last.\n\n";
 
   const A = await ask(client, "raw", raw, "");
+  if (SLEEP_MS) await new Promise((r) => setTimeout(r, SLEEP_MS));
   const B = await ask(client, "compressed", packed, primerCompressed);
   const v = await judge(client, A.text, B.text);
 
