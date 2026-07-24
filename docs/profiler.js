@@ -239,6 +239,24 @@
     report.innerHTML = colorize(cf.renderProfile(p));
     status.textContent =
       commas(text.length) + " characters profiled in " + ms + "ms — in your browser, nothing uploaded";
+
+    // The results render below the button that produced them, so on a short
+    // viewport nothing visibly happens. Put the headline in view instead of
+    // leaving the visitor looking at the textarea.
+    if (ruler && typeof ruler.scrollIntoView === "function") {
+      var reduce =
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      try {
+        ruler.scrollIntoView({
+          behavior: reduce ? "auto" : "smooth",
+          block: "start",
+        });
+      } catch (e) {
+        /* older engines take no options — the result is still on screen */
+        ruler.scrollIntoView();
+      }
+    }
   }
 
   /* --------------------------------------------------------- activation */
