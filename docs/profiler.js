@@ -24,6 +24,25 @@
 
   /* ---------------------------------------------------------------- utils */
 
+  // The markup shipped in index.html is both the no-JS fallback and the
+  // designed empty state. Snapshot it at load so clearing the box restores
+  // it, rather than leaving a stale result under an empty textarea.
+  var INITIAL = {
+    bar: bar.innerHTML,
+    marks: marks.innerHTML,
+    note: note.innerHTML,
+    report: report.innerHTML,
+    status: status ? status.textContent : "",
+  };
+
+  function reset() {
+    bar.innerHTML = INITIAL.bar;
+    marks.innerHTML = INITIAL.marks;
+    note.innerHTML = INITIAL.note;
+    report.innerHTML = INITIAL.report;
+    if (status) status.textContent = INITIAL.status;
+  }
+
   // Composition labels and affixes echo the user's own data
   // (e.g. `constant columns  46%  c, d`). Escape before any innerHTML.
   function esc(s) {
@@ -161,7 +180,7 @@
 
   function render(text) {
     if (!text.trim()) {
-      status.textContent = "runs entirely in your browser — no upload, no API key";
+      reset();
       return;
     }
 
