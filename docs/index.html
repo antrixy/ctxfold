@@ -60,6 +60,7 @@ body{
 a{color:var(--blue)}
 a:focus-visible,button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 code,pre,.mono{font-family:var(--mono)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---------- header ---------- */
 header{padding:56px 0 8px}
@@ -124,6 +125,26 @@ h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.01em;margin
 .ruler-marks{display:flex;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-top:6px}
 .ruler-marks span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
 .ruler-note{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:10px;padding-bottom:8px}
+/* segments are generated per format (2 for logs, 4 for JSON/CSV), so
+   adjacent fills can repeat — a divider keeps the boundaries readable */
+.ruler-bar div+div{border-left:1.5px solid var(--ink)}
+
+/* try it */
+.tryit{border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);margin-top:20px;overflow:hidden}
+.tryit-bar{display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px;border-bottom:1.5px solid var(--grid)}
+.btn{
+  font-family:var(--mono);font-size:12.5px;border:1.5px solid var(--ink);
+  border-radius:3px;background:var(--paper);color:var(--ink);padding:5px 10px;cursor:pointer;
+}
+.btn:hover{background:var(--blue-soft)}
+.btn.ghost{border-color:var(--grid);color:var(--ink-soft)}
+#pf-input{
+  width:100%;min-height:150px;display:block;border:0;outline:none;resize:vertical;
+  padding:12px;font-family:var(--mono);font-size:12.5px;line-height:1.6;
+  background:var(--paper);color:var(--ink);
+}
+.tryit-note{font-family:var(--mono);font-size:12px;color:var(--ink-soft);padding:8px 12px;border-top:1.5px solid var(--grid)}
+.tryit.drag{outline:3px solid var(--blue);outline-offset:-3px}
 
 /* report */
 .report{
@@ -200,23 +221,40 @@ footer a{color:var(--blue)}
   savings come from actually running the encoder, so the profiler can never promise
   more than it delivers.</p>
 
-  <div class="ruler" role="img" aria-label="Composition of a 300-record JSON API response: keys 27 percent, syntax 7 percent, values 36 percent, whitespace 30 percent">
-    <div class="ruler-bar">
+  <div class="tryit" id="pf-tryit">
+    <div class="tryit-bar">
+      <button class="btn" data-sample="json">sample JSON</button>
+      <button class="btn" data-sample="logs">sample logs</button>
+      <button class="btn" data-sample="csv">sample CSV</button>
+      <label class="btn">open a file<input type="file" id="pf-file" hidden></label>
+      <button class="btn ghost" id="pf-clear">clear</button>
+    </div>
+    <label class="visually-hidden" for="pf-input">Paste a prompt payload to profile</label>
+    <textarea id="pf-input" spellcheck="false"
+      placeholder="Paste logs, JSON, or CSV here — or drop a file. Nothing leaves your browser."></textarea>
+    <p class="tryit-note" id="pf-status" aria-live="polite">runs entirely in your browser — no upload, no API key</p>
+  </div>
+
+  <!-- Static values below are the initial state and the no-JS fallback;
+       profiler.js replaces them with live output on first input. The bar
+       duplicates the report text, so it is hidden from screen readers. -->
+  <div class="ruler" aria-hidden="true">
+    <div class="ruler-bar" id="pf-bar">
       <div class="seg-keys" style="width:27%">27%</div>
       <div class="seg-syn" style="width:7%">7%</div>
       <div class="seg-val" style="width:36%">36%</div>
       <div class="seg-ws" style="width:30%">30%</div>
     </div>
-    <div class="ruler-marks">
+    <div class="ruler-marks" id="pf-marks">
       <span style="width:27%">keys</span>
       <span style="width:7%">syntax</span>
       <span style="width:36%">values</span>
       <span style="width:30%">whitespace</span>
     </div>
-    <p class="ruler-note">a real 300-record JSON API response, measured in characters — 64% is structure and formatting</p>
+    <p class="ruler-note" id="pf-note">a real 300-record JSON API response, measured in characters — 64% is structure and formatting</p>
   </div>
 
-  <pre class="report">$ ctxfold --profile users.json
+  <pre class="report" id="pf-report">$ ctxfold --profile users.json
 
 [ctxfold profile]
 format      JSON array — 300 records × 7 fields
@@ -233,7 +271,9 @@ foldable (lossless, verified by round-trip)
   + --dictionary   <span class="b">-73%</span>   readability tradeoff — off by default, see README
 
 verdict: <span class="g">fold it — 16,404 → ~5,595 tokens (~66% fewer)</span></pre>
-  <p class="foot">Zero setup to try it: <code>node examples/profile-demo.js</code> after cloning — no API key, deterministic output.</p>
+  <p class="foot">The panel above runs the real encoder in your browser — same code as the CLI,
+  no API key, nothing uploaded. Prefer a terminal? <code>npx ctxfold --profile yourfile.json</code>,
+  or <code>node examples/profile-demo.js</code> after cloning.</p>
 </section>
 
 <section id="measured">
@@ -293,5 +333,8 @@ verdict: <span class="g">fold it — 16,404 → ~5,595 tokens (~66% fewer)</span
 </footer>
 
 </div>
+
+<script src="ctxfold.web.js" defer></script>
+<script src="profiler.js" defer></script>
 </body>
 </html>
