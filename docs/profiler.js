@@ -18,6 +18,7 @@
   var bar = document.getElementById("pf-bar");
   var marks = document.getElementById("pf-marks");
   var note = document.getElementById("pf-note");
+  var verdict = document.getElementById("pf-verdict");
   var status = document.getElementById("pf-status");
   var wrap = document.getElementById("pf-tryit");
   if (!input || !report || !bar || !marks || !note) return;
@@ -31,6 +32,8 @@
     bar: bar.innerHTML,
     marks: marks.innerHTML,
     note: note.innerHTML,
+    verdict: verdict ? verdict.innerHTML : "",
+    verdictClass: verdict ? verdict.className : "",
     report: report.innerHTML,
     status: status ? status.textContent : "",
   };
@@ -39,6 +42,10 @@
     bar.innerHTML = INITIAL.bar;
     marks.innerHTML = INITIAL.marks;
     note.innerHTML = INITIAL.note;
+    if (verdict) {
+      verdict.innerHTML = INITIAL.verdict;
+      verdict.className = INITIAL.verdictClass;
+    }
     report.innerHTML = INITIAL.report;
     if (status) status.textContent = INITIAL.status;
   }
@@ -122,6 +129,34 @@
     note.innerHTML = n;
   }
 
+  /* -------------------------------------------------------- the verdict */
+
+  // The savings number is the payoff and was previously only reachable by
+  // scrolling into the report. Headline it — but take the library's own
+  // judgement, so CSV (foldable yet not readable) never shows a green number.
+  function renderVerdict(p) {
+    if (!verdict) return;
+
+    var text = p.verdict || "";
+    var best = p.foldable && p.foldable.length ? p.foldable[0] : null;
+    var willFold = /^fold it/.test(text);
+
+    var head;
+    if (willFold && best) head = pct(best.tokenRatio) + " fewer tokens";
+    else if (best) head = "not worth folding to read";
+    else head = "nothing to fold";
+
+    var sub =
+      willFold && best
+        ? commas(p.tokens) + " → ~" + commas(best.tokensAfter) + " · lossless, verified by round-trip"
+        : text;
+
+    verdict.className = willFold ? "verdict" : "verdict warn";
+    verdict.innerHTML =
+      '<span class="verdict-num">' + esc(head) + "</span>" +
+      '<span class="verdict-sub">' + esc(sub) + "</span>";
+  }
+
   /* ---------------------------------------------------------- the report */
 
   // Section-aware colouring. Percentages mean different things in the
@@ -198,6 +233,7 @@
     }
     var ms = Math.round(performance.now() - t0);
 
+    renderVerdict(p);
     renderRuler(p);
     report.innerHTML = colorize(cf.renderProfile(p));
     status.textContent =

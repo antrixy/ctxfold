@@ -129,6 +129,16 @@ h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.01em;margin
    adjacent fills can repeat — a divider keeps the boundaries readable */
 .ruler-bar div+div{border-left:1.5px solid var(--ink)}
 
+/* verdict headline — the payoff number, surfaced above the composition */
+.verdict{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;
+  margin:-18px -16px 16px;padding:14px 16px;
+  background:var(--blue-soft);border-bottom:1.5px solid var(--ink);
+}
+.verdict.warn{background:var(--marker-soft)}
+.verdict-num{font-family:var(--display);font-size:clamp(19px,3.2vw,26px);font-weight:700;letter-spacing:-.01em}
+.verdict-sub{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft)}
+
 /* try it */
 .tryit{border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);margin-top:20px;overflow:hidden}
 .tryit-bar{display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px;border-bottom:1.5px solid var(--grid)}
@@ -239,6 +249,10 @@ footer a{color:var(--blue)}
        profiler.js replaces them with live output on first input. The bar
        duplicates the report text, so it is hidden from screen readers. -->
   <div class="ruler" aria-hidden="true">
+    <p class="verdict" id="pf-verdict">
+      <span class="verdict-num">66% fewer tokens</span>
+      <span class="verdict-sub">16,404 → ~5,595 · lossless, verified by round-trip</span>
+    </p>
     <div class="ruler-bar" id="pf-bar">
       <div class="seg-keys" style="width:27%">27%</div>
       <div class="seg-syn" style="width:7%">7%</div>
