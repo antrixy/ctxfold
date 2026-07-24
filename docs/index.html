@@ -129,6 +129,23 @@ h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.01em;margin
    adjacent fills can repeat — a divider keeps the boundaries readable */
 .ruler-bar div+div{border-left:1.5px solid var(--ink)}
 
+/* results + example */
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.primary:hover{background:var(--blue);border-color:var(--blue)}
+.btn[aria-disabled="true"]{background:var(--paper);color:var(--ink-soft);border-color:var(--grid);cursor:not-allowed}
+.btn[aria-disabled="true"]:hover{background:var(--paper)}
+.hint{
+  font-family:var(--mono);font-size:13px;color:var(--ink-soft);text-align:center;
+  border:1.5px dashed var(--grid);border-radius:4px;padding:28px 16px;margin-top:20px;
+}
+.example{margin-top:30px;border:1.5px solid var(--grid);border-radius:4px;padding:14px 16px 16px}
+.example-cap{
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);margin-bottom:12px;
+}
+.example .ruler{border-color:var(--grid);margin-top:0}
+.example .report{margin-top:14px}
+
 /* verdict headline — the payoff number, surfaced above the composition */
 .verdict{
   display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;
@@ -233,6 +250,7 @@ footer a{color:var(--blue)}
 
   <div class="tryit" id="pf-tryit">
     <div class="tryit-bar">
+      <button class="btn primary" id="pf-run" aria-disabled="true">Profile</button>
       <button class="btn" data-sample="json">sample JSON</button>
       <button class="btn" data-sample="logs">sample logs</button>
       <button class="btn" data-sample="csv">sample CSV</button>
@@ -245,30 +263,42 @@ footer a{color:var(--blue)}
     <p class="tryit-note" id="pf-status" aria-live="polite">runs entirely in your browser — no upload, no API key</p>
   </div>
 
-  <!-- Static values below are the initial state and the no-JS fallback;
-       profiler.js replaces them with live output on first input. The bar
-       duplicates the report text, so it is hidden from screen readers. -->
-  <div class="ruler" aria-hidden="true">
-    <p class="verdict" id="pf-verdict">
-      <span class="verdict-num">66% fewer tokens</span>
-      <span class="verdict-sub">16,404 → ~5,595 · lossless, verified by round-trip</span>
-    </p>
-    <div class="ruler-bar" id="pf-bar">
-      <div class="seg-keys" style="width:27%">27%</div>
-      <div class="seg-syn" style="width:7%">7%</div>
-      <div class="seg-val" style="width:36%">36%</div>
-      <div class="seg-ws" style="width:30%">30%</div>
-    </div>
-    <div class="ruler-marks" id="pf-marks">
-      <span style="width:27%">keys</span>
-      <span style="width:7%">syntax</span>
-      <span style="width:36%">values</span>
-      <span style="width:30%">whitespace</span>
-    </div>
-    <p class="ruler-note" id="pf-note">a real 300-record JSON API response, measured in characters — 64% is structure and formatting</p>
-  </div>
+  <!-- Live results. Empty until Profile is pressed: every number that appears
+       here was produced by the encoder running on the visitor's own input. -->
+  <p class="hint" id="pf-hint">paste something above, or load a sample — then press Profile</p>
 
-  <pre class="report" id="pf-report">$ ctxfold --profile users.json
+  <div class="ruler" id="pf-ruler" aria-hidden="true" hidden>
+    <p class="verdict" id="pf-verdict"></p>
+    <div class="ruler-bar" id="pf-bar"></div>
+    <div class="ruler-marks" id="pf-marks"></div>
+    <p class="ruler-note" id="pf-note"></p>
+  </div>
+  <pre class="report" id="pf-report" hidden></pre>
+
+  <!-- Static example. Not wired to anything: a real run, recorded, kept so the
+       page still shows what the output looks like without JavaScript. -->
+  <div class="example">
+    <p class="example-cap">example output — recorded run, 300-record JSON API response</p>
+    <div class="ruler" aria-hidden="true">
+      <p class="verdict">
+        <span class="verdict-num">66% fewer tokens</span>
+        <span class="verdict-sub">16,404 → ~5,595 · lossless, verified by round-trip</span>
+      </p>
+      <div class="ruler-bar">
+        <div class="seg-keys" style="width:27%">27%</div>
+        <div class="seg-syn" style="width:7%">7%</div>
+        <div class="seg-val" style="width:36%">36%</div>
+        <div class="seg-ws" style="width:30%">30%</div>
+      </div>
+      <div class="ruler-marks">
+        <span style="width:27%">keys</span>
+        <span style="width:7%">syntax</span>
+        <span style="width:36%">values</span>
+        <span style="width:30%">whitespace</span>
+      </div>
+      <p class="ruler-note">measured in characters — 64% of it is structure and formatting</p>
+    </div>
+    <pre class="report">$ ctxfold --profile users.json
 
 [ctxfold profile]
 format      JSON array — 300 records × 7 fields
@@ -285,6 +315,8 @@ foldable (lossless, verified by round-trip)
   + --dictionary   <span class="b">-73%</span>   readability tradeoff — off by default, see README
 
 verdict: <span class="g">fold it — 16,404 → ~5,595 tokens (~66% fewer)</span></pre>
+  </div>
+
   <p class="foot">The panel above runs the real encoder in your browser — same code as the CLI,
   no API key, nothing uploaded. Prefer a terminal? <code>npx ctxfold --profile yourfile.json</code>,
   or <code>node examples/profile-demo.js</code> after cloning.</p>

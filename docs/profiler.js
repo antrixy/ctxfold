@@ -10,6 +10,8 @@
 (function () {
   "use strict";
 
+  var IDLE = "runs entirely in your browser — no upload, no API key";
+
   var cf = window.ctxfold;
   if (!cf || typeof cf.profile !== "function") return;
 
@@ -21,33 +23,31 @@
   var verdict = document.getElementById("pf-verdict");
   var status = document.getElementById("pf-status");
   var wrap = document.getElementById("pf-tryit");
-  if (!input || !report || !bar || !marks || !note) return;
+  var ruler = document.getElementById("pf-ruler");
+  var hint = document.getElementById("pf-hint");
+  var run = document.getElementById("pf-run");
+  if (!input || !report || !bar || !marks || !note || !run) return;
 
   /* ---------------------------------------------------------------- utils */
 
-  // The markup shipped in index.html is both the no-JS fallback and the
-  // designed empty state. Snapshot it at load so clearing the box restores
-  // it, rather than leaving a stale result under an empty textarea.
-  var INITIAL = {
-    bar: bar.innerHTML,
-    marks: marks.innerHTML,
-    note: note.innerHTML,
-    verdict: verdict ? verdict.innerHTML : "",
-    verdictClass: verdict ? verdict.className : "",
-    report: report.innerHTML,
-    status: status ? status.textContent : "",
-  };
-
+  // Results start empty and stay empty until Profile is pressed. The static
+  // example lives in its own block in index.html and is never touched here,
+  // so nothing on screen can be mistaken for a measurement of your input.
   function reset() {
-    bar.innerHTML = INITIAL.bar;
-    marks.innerHTML = INITIAL.marks;
-    note.innerHTML = INITIAL.note;
-    if (verdict) {
-      verdict.innerHTML = INITIAL.verdict;
-      verdict.className = INITIAL.verdictClass;
-    }
-    report.innerHTML = INITIAL.report;
-    if (status) status.textContent = INITIAL.status;
+    if (ruler) ruler.hidden = true;
+    report.hidden = true;
+    if (hint) hint.hidden = false;
+    bar.innerHTML = "";
+    marks.innerHTML = "";
+    note.innerHTML = "";
+    if (verdict) verdict.innerHTML = "";
+    if (status) status.textContent = IDLE;
+  }
+
+  function show() {
+    if (hint) hint.hidden = true;
+    if (ruler) ruler.hidden = false;
+    report.hidden = false;
   }
 
   // Composition labels and affixes echo the user's own data
@@ -219,6 +219,7 @@
       return;
     }
 
+    show();
     var t0 = performance.now();
     var p;
     try {
@@ -240,15 +241,32 @@
       commas(text.length) + " characters profiled in " + ms + "ms — in your browser, nothing uploaded";
   }
 
-  var timer = null;
-  function schedule() {
-    clearTimeout(timer);
-    timer = setTimeout(function () {
-      render(input.value);
-    }, 250);
+  /* --------------------------------------------------------- activation */
+
+  // Profile is the only thing that produces numbers. Everything else just
+  // supplies input, so a visitor can always tell which action caused what.
+  function hasInput() {
+    return input.value.trim().length > 0;
   }
 
-  input.addEventListener("input", schedule);
+  function syncButton() {
+    run.setAttribute("aria-disabled", hasInput() ? "false" : "true");
+  }
+
+  // aria-disabled rather than the disabled attribute: the control stays
+  // focusable and announced, so a keyboard user meets it and hears why it
+  // is unavailable instead of finding a gap in the tab order.
+  run.addEventListener("click", function () {
+    if (!hasInput()) {
+      if (status) status.textContent = "paste or load something first";
+      input.focus();
+      return;
+    }
+    render(input.value);
+  });
+
+  // Typing only toggles the button — it never profiles.
+  input.addEventListener("input", syncButton);
 
   /* --------------------------------------------------------- input paths */
 
@@ -298,7 +316,10 @@
         var make = SAMPLES[btn.getAttribute("data-sample")];
         if (!make) return;
         input.value = make();
-        render(input.value);
+        syncButton();
+        reset();
+        if (status) status.textContent = "sample loaded — press Profile to run it";
+        input.focus();
       });
     }
   );
@@ -307,7 +328,8 @@
   if (clear) {
     clear.addEventListener("click", function () {
       input.value = "";
-      render("");
+      syncButton();
+      reset();
     });
   }
 
@@ -317,7 +339,9 @@
     var r = new FileReader();
     r.onload = function () {
       input.value = String(r.result);
-      render(input.value);
+      syncButton();
+      reset();
+      if (status) status.textContent = (f.name || "file") + " loaded — press Profile to run it";
     };
     r.readAsText(f);
   }
@@ -345,4 +369,7 @@
       readFile(e.dataTransfer && e.dataTransfer.files[0]);
     });
   }
+  // Blank whatever the no-JS markup left behind and start from zero.
+  syncButton();
+  reset();
 })();
