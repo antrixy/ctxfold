@@ -10,7 +10,7 @@
     "test": "node --test",
     "bench": "node bench/bench.js"
   },
-  "keywords": ["llm", "tokens", "prompt", "prompt-engineering", "compression", "lossless", "logs", "json", "csv", "tsv", "openai", "anthropic", "context-window", "cli"],
+  "keywords": ["llm", "tokens", "tokenizer", "prompt", "prompt-engineering", "compression", "lossless", "logs", "json", "csv", "tsv", "openai", "anthropic", "context-window", "cli"],
   "author": "maverickyadav",
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/antrixy/ctxfold.git" },
