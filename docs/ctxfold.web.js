@@ -1,4 +1,4 @@
-/* ctxfold 0.2.1 — browser bundle. GENERATED from src/ by esbuild; do not edit by hand. */
+/* ctxfold 0.2.2 — browser bundle. GENERATED from src/ by esbuild; do not edit by hand. */
 "use strict";
 var ctxfold = (() => {
   var __getOwnPropNames = Object.getOwnPropertyNames;
