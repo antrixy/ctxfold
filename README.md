@@ -19,6 +19,7 @@ exactly as it would from the raw input.
 > `compress()` verifies that decoding its output reproduces the input before
 > returning it. If it can't, you get your original text back, untouched.
 
+
 ```
    JSON · logs                        the model reads the folded table
    (raw, repetitive)                  directly, answering exactly as it
@@ -37,9 +38,15 @@ exactly as it would from the raw input.
    original bytes, byte-for-byte   (lossless round-trip, verified before return)
 ```
 
+
 CSV folds too (~28% fewer tokens) but the folded form isn't reliably
 direct-readable — send CSV raw to the model, or fold it for lossless
 pipeline transit only.
+
+**Why not just gzip it?** Because gzip'd JSON isn't model-readable — you'd have to
+decompress before the model sees it, saving zero prompt tokens. ctxfold's output
+is the rare thing that's *both* readable by the model as-is **and** losslessly
+reversible, so the savings land in the prompt where they count.
 
 ### The contract
 
