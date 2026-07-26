@@ -19,6 +19,28 @@ exactly as it would from the raw input.
 > `compress()` verifies that decoding its output reproduces the input before
 > returning it. If it can't, you get your original text back, untouched.
 
+```
+   JSON · logs                        the model reads the folded table
+   (raw, repetitive)                  directly, answering exactly as it
+        │                             would from the raw input
+        │  ctxfold.compress()                       ▲
+        │  ~39% fewer prompt tokens                 │
+        │  (GPT tokenizer; up to ~66% on            │
+        │   highly repetitive data)                 │
+        ▼                                           │
+   ┌──────────────┐ ──────────────────────────────►┘
+   │ folded table │
+   └──────────────┘
+        │
+        │  ctxfold.decompress()
+        ▼
+   original bytes, byte-for-byte   (lossless round-trip, verified before return)
+```
+
+CSV folds too (~28% fewer tokens) but the folded form isn't reliably
+direct-readable — send CSV raw to the model, or fold it for lossless
+pipeline transit only.
+
 ### The contract
 
 > **ctxfold operates on repeated records.**
