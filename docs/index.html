@@ -183,6 +183,7 @@ h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.01em;margin
 .report .b{color:#8FA6E8}
 
 /* claims table */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;margin-top:20px;font-family:var(--mono);font-size:13px;background:var(--paper);border:1.5px solid var(--ink)}
 th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--grid)}
 th{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);border-bottom:1.5px solid var(--ink)}
@@ -204,8 +205,24 @@ footer{padding:56px 0 40px;color:var(--ink-soft);font-family:var(--mono);font-si
 footer a{color:var(--blue)}
 
 @media(max-width:560px){
+  .sheet{padding:0 16px}
   .fold pre{font-size:11px}
   .report{font-size:11.5px}
+  /* 16px stops iOS Safari auto-zooming the page when the textarea is focused */
+  #pf-input{font-size:16px}
+  /* in-segment % labels have no room at phone bar widths; hide them —
+     the numbers remain in the legend titles and the report */
+  .ruler-bar>div{font-size:0}
+  /* marks row: proportional-width spans truncate to nothing on a narrow bar;
+     become a wrapping legend instead, with swatches mirroring the JS palette
+     cycle (PALETTE[i % 4] in profiler.js) via the same nth-child cycle */
+  .ruler-marks{flex-wrap:wrap;gap:3px 12px}
+  .ruler-marks span{width:auto!important;overflow:visible;display:inline-flex;align-items:center;gap:5px}
+  .ruler-marks span::before{content:"";width:9px;height:9px;border:1px solid var(--ink);flex:none}
+  .ruler-marks span:nth-child(4n+1)::before{background:var(--marker)}
+  .ruler-marks span:nth-child(4n+2)::before{background:var(--marker-soft)}
+  .ruler-marks span:nth-child(4n+3)::before{background:var(--paper)}
+  .ruler-marks span:nth-child(4n)::before{background:var(--blue-soft)}
 }
 </style>
 </head>
@@ -328,14 +345,14 @@ verdict: <span class="g">fold it — 16,404 → ~5,595 tokens (~66% fewer)</span
   <p class="lead">Lookup accuracy is scored against exact ground truth: the same questions asked
   of the folded form and the raw form, across GPT-4o-mini, Claude, Llama, and Qwen. Where the measurement came in
   <em>against</em> the format, the table says so.</p>
-  <table>
+  <div class="table-scroll"><table>
     <thead><tr><th>dataset</th><th>lookup, raw</th><th>lookup, folded</th><th class="num">tokens saved</th><th>reading</th></tr></thead>
     <tbody>
       <tr><td>JSON (400 recs)</td><td>24/24</td><td>24/24</td><td class="num">39%</td><td>direct-readable</td></tr>
       <tr><td>Logs (1,200 ln)</td><td>23/24</td><td>23/24</td><td class="num">39%</td><td>direct-readable</td></tr>
       <tr class="warn"><td>CSV / TSV (400 recs)</td><td>24/24</td><td>≤9/24</td><td class="num">28%</td><td>pipeline only</td></tr>
     </tbody>
-  </table>
+  </table></div>
   <p class="foot">Table shows the original GPT-4o-mini runs; the full four-model matrix (including
   the one model that reads folded CSV correctly) is in the
   <a href="https://github.com/antrixy/ctxfold#cross-model-readability">README</a>.
