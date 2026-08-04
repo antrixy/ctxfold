@@ -4,6 +4,8 @@ title: "I built a readability test for my own compression format. It scored 0/24
 permalink: /readability/
 ---
 
+# I built a readability test for my own compression format. It scored 0/24
+
 *A negative result, its root cause, and the feature it produced.*
 
 My last post introduced [ctxfold](https://github.com/antrixy/ctxfold) — lossless, structure-aware compression for the bulky stuff we put in LLM prompts. Its benchmark table had one cell I wasn't proud of:
