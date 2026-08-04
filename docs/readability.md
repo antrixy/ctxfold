@@ -8,7 +8,7 @@ permalink: /readability/
 
 *A negative result, its root cause, and the feature it produced.*
 
-My last post introduced [ctxfold](https://github.com/antrixy/ctxfold) — lossless, structure-aware compression for the bulky stuff we put in LLM prompts. Its benchmark table had one cell I wasn't proud of:
+When I released [ctxfold](https://github.com/antrixy/ctxfold) — lossless, structure-aware compression for the bulky stuff we put in LLM prompts — its benchmark table had one cell I wasn't proud of:
 
 ```plaintext
 | CSV / TSV | char reduction | ~30–45%* |
@@ -18,7 +18,7 @@ My last post introduced [ctxfold](https://github.com/antrixy/ctxfold) — lossle
 
 JSON and logs had real numbers: a model answering lookup questions off the folded form, scored against exact ground truth, matching raw field-for-field. CSV had a character count and an asterisk.
 
-So I wrote the same harness for CSV. Generate 400 records with realistic redundancy, fold them, ask GPT-4o-mini to look up specific records in both forms, score against ground truth.
+So I wrote [the same harness](https://github.com/antrixy/ctxfold/blob/main/examples/gpt-csv-equivalence.js) for CSV. Generate 400 records with realistic redundancy, fold them, ask GPT-4o-mini to look up specific records in both forms, score against ground truth.
 
 Raw CSV: **24/24**. Folded CSV: **0/24**.
 
